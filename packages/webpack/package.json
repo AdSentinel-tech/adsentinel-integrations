@@ -1,0 +1,61 @@
+{
+  "name": "@adsentinel/webpack",
+  "version": "0.1.0",
+  "description": "AdSentinel's Webpack plugin: at build time it fetches a site's two serving tags from the control API and injects them into the emitted HTML, through HtmlWebpackPlugin when present and the emitted HTML asset otherwise, fail-open.",
+  "keywords": [
+    "adsentinel",
+    "adblock-recovery",
+    "webpack",
+    "webpack-plugin",
+    "html-webpack-plugin"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdSentinel-tech/adsentinel-integrations.git",
+    "directory": "packages/webpack"
+  },
+  "homepage": "https://github.com/AdSentinel-tech/adsentinel-integrations/tree/main/packages/webpack#readme",
+  "bugs": {
+    "url": "https://github.com/AdSentinel-tech/adsentinel-integrations/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../tools/clean-dist.mjs && tsc -p tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@adsentinel/plugin-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0",
+    "html-webpack-plugin": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "html-webpack-plugin": {
+      "optional": true
+    }
+  }
+}

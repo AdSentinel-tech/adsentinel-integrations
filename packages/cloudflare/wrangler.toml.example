@@ -1,0 +1,12 @@
+# The AdSentinel publisher edge as a Cloudflare Worker, on the publisher's own account.
+# usage: npm install @adsentinel/cloudflare; cp node_modules/@adsentinel/cloudflare/wrangler.toml.example wrangler.toml;
+#        fill in; `npx wrangler deploy`
+name = "adsentinel-edge"
+main = "node_modules/@adsentinel/cloudflare/dist/worker.js"
+compatibility_date = "2024-09-01"
+routes = [{ pattern = "www.example.com/*", zone_name = "example.com" }]
+
+[vars]
+AS_CONTROL_ORIGIN = "https://page-kit.io"
+AS_API_ID = "as_xxxxxxxxxxxx"
+# AS_API_KEY: `npx wrangler secret put AS_API_KEY` — never in this file.

@@ -1,0 +1,20 @@
+{
+  "name": "wordpress",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "lint": {
+      "command": "node tools/wordpress-plugin.mjs lint",
+      "options": { "cwd": "{workspaceRoot}" },
+      "inputs": ["{projectRoot}/**/*", "{workspaceRoot}/tools/wordpress-plugin.mjs"],
+      "cache": true
+    },
+    "package": {
+      "command": "node tools/wordpress-plugin.mjs package",
+      "options": { "cwd": "{workspaceRoot}" },
+      "inputs": ["{projectRoot}/**/*", "{workspaceRoot}/tools/wordpress-plugin.mjs"],
+      "outputs": ["{workspaceRoot}/artifacts/wordpress"],
+      "cache": true
+    }
+  }
+}

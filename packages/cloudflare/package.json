@@ -1,0 +1,75 @@
+{
+  "name": "@adsentinel/cloudflare",
+  "version": "0.0.0",
+  "description": "The AdSentinel publisher edge for Cloudflare: a Worker or Snippet that relays AdSentinel's paths and injects the serving tags into every HTML page, fail-open. Built on @adsentinel/plugin-core.",
+  "keywords": [
+    "adsentinel",
+    "adblock-recovery",
+    "cloudflare",
+    "cloudflare-workers",
+    "cloudflare-snippets"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdSentinel-tech/adsentinel-integrations.git",
+    "directory": "packages/cloudflare"
+  },
+  "homepage": "https://github.com/AdSentinel-tech/adsentinel-integrations/tree/main/packages/cloudflare#readme",
+  "bugs": {
+    "url": "https://github.com/AdSentinel-tech/adsentinel-integrations/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js"
+    },
+    "./snippet-template": {
+      "types": "./dist/snippet-template.d.ts",
+      "import": "./dist/snippet-template.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "wrangler.toml.example"
+  ],
+  "scripts": {
+    "build": "node ../../tools/clean-dist.mjs && tsc -p tsconfig.lib.json && node scripts/build-snippet-template.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@adsentinel/plugin-core": "^0.1.0"
+  },
+  "nx": {
+    "targets": {
+      "test": {
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "typecheck": {
+        "dependsOn": [
+          "build"
+        ]
+      }
+    }
+  }
+}

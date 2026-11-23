@@ -1,0 +1,39 @@
+# Builds the WordPress plugin zip and attaches it to a GitHub release.
+#
+# Trigger: a tag `wordpress@<version>` whose version equals the plugin header's
+# `Version:` (and readme.txt's `Stable tag:`).
+name: WordPress plugin release
+
+on:
+  push:
+    tags:
+      - 'wordpress@*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - name: Check the tag matches the plugin version
+        run: |
+          version="$(node tools/wordpress-plugin.mjs version)"
+          if [ "${GITHUB_REF_NAME}" != "wordpress@${version}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match plugin version ${version}" >&2
+            exit 1
+          fi
+      - run: node tools/wordpress-plugin.mjs lint
+        env:
+          CI: 'true'
+      - run: node tools/wordpress-plugin.mjs package
+      - name: Create the release with the zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/wordpress/*.zip \
+            --verify-tag --title "WordPress plugin ${GITHUB_REF_NAME#wordpress@}" --generate-notes

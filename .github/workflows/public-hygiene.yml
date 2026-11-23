@@ -1,0 +1,21 @@
+# Fails when a file names an internal company or vendor, carries an absolute home
+# path, or contains non-English (French) text. See tools/public-hygiene-guard.mjs.
+name: Public hygiene guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: node tools/public-hygiene-guard.mjs

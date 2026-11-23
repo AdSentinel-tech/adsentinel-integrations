@@ -1,0 +1,47 @@
+{
+  "name": "@adsentinel/integrations-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Workspace for the public AdSentinel integration packages (framework plugins, Cloudflare edge, WordPress plugin).",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint",
+    "test": "nx run-many -t test",
+    "check": "nx run-many -t lint typecheck build test && npm run guard",
+    "guard": "node tools/public-hygiene-guard.mjs",
+    "release:plan": "nx release plan",
+    "release": "nx release --skip-publish"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@nx/js": "^22.7.0",
+    "@types/express": "^5.0.5",
+    "@types/node": "^22.19.1",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "ajv": "^8.17.1",
+    "astro": "^5.16.0",
+    "esbuild": "^0.27.0",
+    "eslint": "^10.15.0",
+    "express": "^5.1.0",
+    "html-webpack-plugin": "^5.6.5",
+    "nx": "22.7.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.73.0",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.13",
+    "webpack": "^5.103.0"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11.5.1"
+  },
+  "packageManager": "npm@11.21.3"
+}

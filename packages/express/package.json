@@ -1,0 +1,60 @@
+{
+  "name": "@adsentinel/express",
+  "version": "0.1.0",
+  "description": "Express/Connect middleware for AdSentinel: buffer the response and inject the two serving tags into the <head> of text/html responses, failing open on everything else. Built on @adsentinel/plugin-core.",
+  "keywords": [
+    "adsentinel",
+    "adblock-recovery",
+    "express",
+    "connect",
+    "middleware"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdSentinel-tech/adsentinel-integrations.git",
+    "directory": "packages/express"
+  },
+  "homepage": "https://github.com/AdSentinel-tech/adsentinel-integrations/tree/main/packages/express#readme",
+  "bugs": {
+    "url": "https://github.com/AdSentinel-tech/adsentinel-integrations/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../tools/clean-dist.mjs && tsc -p tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@adsentinel/plugin-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  }
+}

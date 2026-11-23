@@ -1,0 +1,48 @@
+{
+  "name": "@adsentinel/plugin-core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic foundation every AdSentinel framework integration plugin builds on: fetch the two serving tags from the control API and inject them into a page's <head>, isomorphically and fail-open.",
+  "keywords": [
+    "adsentinel",
+    "adblock-recovery",
+    "ad-recovery"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdSentinel-tech/adsentinel-integrations.git",
+    "directory": "packages/plugin-core"
+  },
+  "homepage": "https://github.com/AdSentinel-tech/adsentinel-integrations/tree/main/packages/plugin-core#readme",
+  "bugs": {
+    "url": "https://github.com/AdSentinel-tech/adsentinel-integrations/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./edge-bundle.schema.json": "./dist/edge-bundle.schema.json",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../tools/clean-dist.mjs && tsc -p tsconfig.lib.json && node scripts/write-schema-file.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "@adsentinel/astro",
+  "version": "0.1.0",
+  "description": "AdSentinel for Astro: an Astro integration that injects the two serving tags into every page's <head> — baked into the built HTML for static output, injected per response by middleware for SSR.",
+  "keywords": [
+    "adsentinel",
+    "adblock-recovery",
+    "astro",
+    "astro-integration",
+    "withastro"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdSentinel-tech/adsentinel-integrations.git",
+    "directory": "packages/astro"
+  },
+  "homepage": "https://github.com/AdSentinel-tech/adsentinel-integrations/tree/main/packages/astro#readme",
+  "bugs": {
+    "url": "https://github.com/AdSentinel-tech/adsentinel-integrations/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../tools/clean-dist.mjs && tsc -p tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@adsentinel/plugin-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "astro": ">=4.0.0"
+  }
+}

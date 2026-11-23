@@ -1,0 +1,54 @@
+# Publishes npm packages with npm Trusted Publishing (OIDC): no NPM_TOKEN secret.
+#
+# Each package must list this repository and this workflow file (publish.yml) as a
+# trusted publisher on npmjs.com (package -> Settings -> Trusted publishing).
+#
+# Triggers:
+#   - a release tag `@adsentinel/<package>@<version>`, created by `nx release`;
+#   - manual run: publishes every package whose version is not on npm yet. Use it
+#     after pushing more than three tags at once, since GitHub does not start
+#     workflows for those.
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - '@adsentinel/*@*'
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub release for the tag
+  id-token: write # npm Trusted Publishing + provenance
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # Trusted Publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@^11.5.1
+      - run: npm ci
+      - run: npx nx run-many -t build test -p 'packages/*'
+      - name: Publish
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            node tools/publish-packages.mjs --tag "${GITHUB_REF_NAME}"
+          else
+            node tools/publish-packages.mjs
+          fi
+      - name: GitHub release for the tag
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
+            gh release create "${GITHUB_REF_NAME}" --verify-tag --title "${GITHUB_REF_NAME}" --generate-notes

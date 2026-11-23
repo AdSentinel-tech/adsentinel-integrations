@@ -1,0 +1,11 @@
+node_modules/
+dist/
+artifacts/
+.nx/cache/
+.nx/workspace-data/
+coverage/
+*.tgz
+*.log
+.DS_Store
+# The license file is copied into each package at publish time from the root one.
+packages/*/LICENSE
