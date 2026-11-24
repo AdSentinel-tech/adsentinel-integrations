@@ -44,10 +44,35 @@ export default defineConfig({
 | -------------- | -------- | --------------------- | -------------------------------------------------------------- |
 | `apiId`        | yes      | —                     | The site's plugin API id.                                      |
 | `apiKey`       | yes      | —                     | The site's plugin API key.                                     |
-| `siteHost`     | yes      | —                     | The host the bundle is served for (the control API requires it). |
+| `siteHost`     | static: yes, SSR: no | `ADSENTINEL_SITE_HOST` | The site's public host. When set, always used (see below). |
 | `controlOrigin`| no       | `https://page-kit.io` | The control / serving origin. Set this for a first-party host. |
 
 Keep `apiKey` out of source — read it from an environment variable, as above.
+
+### Site host and reverse proxies
+
+The tags are asked for the site's **public** host, lowercased and without a
+port. A static build has no request, so it needs `siteHost` (or the
+`ADSENTINEL_SITE_HOST` environment variable at build time); without one it
+injects nothing and logs a warning.
+
+For SSR, `siteHost` may be left unset: the middleware then uses the request's
+`X-Forwarded-Host` (first value), else its `Host` header. Behind a reverse
+proxy, CDN or API gateway that does not forward the public host, the server
+sees the proxy's upstream host (say `app-upstream.internal:3000`); the control
+API answers `unknown host`, nothing is injected, and one warning names the host
+that was sent. Pin the public host to fix it:
+
+```js
+adsentinel({
+  apiId: process.env.ADSENTINEL_API_ID,
+  apiKey: process.env.ADSENTINEL_API_KEY,
+  siteHost: 'www.example.com',
+});
+```
+
+or set `ADSENTINEL_SITE_HOST=www.example.com` in the server's environment. The
+option wins over the environment variable.
 
 ## How it injects
 

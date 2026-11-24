@@ -11,7 +11,7 @@
  * site or an empty bundle all resolve to the empty string, which every injector
  * treats as "inject nothing". Nothing here throws into the host render.
  */
-import { fetchEdgeBundle } from '@adsentinel/plugin-core';
+import { fetchEdgeBundle, siteHostFromEnv } from '@adsentinel/plugin-core';
 import type { EdgeBundle, PluginSettings } from '@adsentinel/plugin-core';
 
 /**
@@ -33,10 +33,15 @@ export function tagsFromBundle(bundle: EdgeBundle | null | undefined): string {
  * page served on every request, back this with `createBundleCache` from
  * `@adsentinel/plugin-core` and feed `cache.get()` to `tagsFromBundle` instead,
  * so the control API is hit at most once per TTL rather than once per render.
+ *
+ * `settings.siteHost` must be the site's PUBLIC host. When it is unset, the
+ * `ADSENTINEL_SITE_HOST` environment variable is used. To derive it from the
+ * request instead (honouring `X-Forwarded-Host` behind a reverse proxy), pass
+ * `siteHostFromHeaders(requestHeaders)`.
  */
 export async function getAdSentinelTags(settings: PluginSettings): Promise<string> {
   try {
-    const bundle = await fetchEdgeBundle(settings);
+    const bundle = await fetchEdgeBundle({ ...settings, siteHost: settings.siteHost || siteHostFromEnv() });
     return tagsFromBundle(bundle);
   } catch {
     // `fetchEdgeBundle` is already fail-open, but a resolver must never let an

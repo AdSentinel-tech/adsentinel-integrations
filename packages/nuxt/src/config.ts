@@ -20,6 +20,13 @@ export interface ModuleOptions {
   apiId?: string;
   /** The site's plugin API key (console -> Domain -> Serving). */
   apiKey?: string;
+  /**
+   * The site's public host, e.g. `www.example.com`. When set, it is always the
+   * host the tags are asked for. Leave it unset to use the request's
+   * `X-Forwarded-Host`, then `Host`. Set it when the app sits behind a reverse
+   * proxy or gateway that does not forward the public host.
+   */
+  siteHost?: string;
 }
 
 /**
@@ -32,4 +39,6 @@ export interface ResolvedRuntimeConfig {
   controlOrigin: string;
   apiId: string;
   apiKey: string;
+  /** The configured public site host, or empty to derive it from the request. */
+  siteHost: string;
 }

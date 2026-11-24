@@ -2,7 +2,8 @@
  * `tagsFromBundle` and `getAdSentinelTags` resolve a site's serving tags with no
  * network (an injected `fetchImpl`) and fail open to `''` on every bad path.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { siteHostFromHeaders } from './index.js';
 import type { EdgeBundle, PluginSettings } from '@adsentinel/plugin-core';
 import { getAdSentinelTags, tagsFromBundle } from './get-tags.js';
 
@@ -89,5 +90,39 @@ describe('getAdSentinelTags', () => {
       throw new Error('network down');
     }) as unknown as typeof fetch;
     await expect(getAdSentinelTags(settings(throwing))).resolves.toBe('');
+  });
+});
+
+describe('getAdSentinelTags site host', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  /** Resolve the tags with `siteHost`; return the host sent to the edge-bundle endpoint. */
+  async function hostSentFor(siteHost: string | undefined): Promise<string | null> {
+    const fetchImpl = vi.fn(fakeFetch(bundle()));
+    expect(await getAdSentinelTags({ ...settings(fetchImpl as unknown as typeof fetch), siteHost })).toBe(TAGS);
+    const [url] = fetchImpl.mock.calls[0] as unknown as [string];
+    return new URL(url).searchParams.get('host');
+  }
+
+  it('uses the plain Host header of the request', async () => {
+    expect(await hostSentFor(siteHostFromHeaders(new Headers({ host: 'WWW.Example.com:3000' })))).toBe('www.example.com');
+  });
+
+  it('honours X-Forwarded-Host (first value) behind a reverse proxy', async () => {
+    const headers = new Headers({ host: 'app-upstream.internal:3000', 'x-forwarded-host': 'www.example.com, edge.internal' });
+    expect(await hostSentFor(siteHostFromHeaders(headers))).toBe('www.example.com');
+  });
+
+  it('always uses the explicit siteHost when set', async () => {
+    const headers = { host: 'app-upstream.internal', 'x-forwarded-host': 'proxy.internal' };
+    expect(await hostSentFor(siteHostFromHeaders(headers, 'www.example.com'))).toBe('www.example.com');
+    expect(await hostSentFor('www.example.com')).toBe('www.example.com');
+  });
+
+  it('falls back to ADSENTINEL_SITE_HOST when no siteHost is given', async () => {
+    vi.stubEnv('ADSENTINEL_SITE_HOST', 'www.example.com');
+    expect(await hostSentFor(undefined)).toBe('www.example.com');
   });
 });

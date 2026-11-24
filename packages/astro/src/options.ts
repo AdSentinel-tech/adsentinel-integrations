@@ -1,9 +1,10 @@
 /**
  * The integration's public options and how they become `PluginSettings`.
  *
- * `adsentinel({ controlOrigin?, apiId, apiKey, siteHost })` is the whole public
- * surface. Only `controlOrigin` is optional; it defaults to the hosted serving
- * origin so a publisher supplies just their site's credentials and host.
+ * `adsentinel({ controlOrigin?, apiId, apiKey, siteHost? })` is the whole public
+ * surface. `controlOrigin` defaults to the hosted serving origin. `siteHost`
+ * defaults to the `ADSENTINEL_SITE_HOST` environment variable; for SSR it may be
+ * left unset, the middleware then uses the request's public host.
  */
 import { DEFAULT_CONTROL_ORIGIN } from '@adsentinel/plugin-core';
 import type { PluginSettings } from '@adsentinel/plugin-core';
@@ -20,8 +21,15 @@ export interface AdSentinelOptions {
   apiId: string;
   /** The site's plugin API key (console -> Domain -> Serving). */
   apiKey: string;
-  /** The host the bundle is served for; the control API requires it. */
-  siteHost: string;
+  /**
+   * The site's public host, e.g. `www.example.com`. When set (here or with the
+   * `ADSENTINEL_SITE_HOST` environment variable) it is always the host the tags
+   * are asked for. A static build needs it. For SSR it may be left unset: the
+   * middleware then uses the request's `X-Forwarded-Host` (first value), else
+   * its `Host`. Set it when the server sits behind a reverse proxy that does not
+   * forward the public host.
+   */
+  siteHost?: string;
 }
 
 /** Fold the public options into the `PluginSettings` the shared core consumes. */

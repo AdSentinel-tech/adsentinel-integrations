@@ -1,7 +1,7 @@
 /**
  * `@adsentinel/astro` — the AdSentinel integration for Astro.
  *
- * `adsentinel({ controlOrigin?, apiId, apiKey, siteHost })` returns an
+ * `adsentinel({ controlOrigin?, apiId, apiKey, siteHost? })` returns an
  * `AstroIntegration` that injects AdSentinel's two serving tags into the
  * `<head>` of every page, by one of two paths depending on the project's
  * output:

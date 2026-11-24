@@ -11,9 +11,10 @@ into Nuxt.
   client round-trip, and the API key never reaches the client.
 - **Fail-open.** When the site is not configured, the control plane is down, or
   the bundle is inactive, the module injects nothing and never breaks rendering.
-- **One cache per host.** The site host is derived from the request, so a single
-  deployment can serve several hosts; each gets its own SWR cache, shared across
-  requests for the life of the server.
+- **One cache per host.** Unless `siteHost` is set, the site host is derived from
+  the request (`X-Forwarded-Host`, then `Host`), so a single deployment can serve
+  several hosts; each gets its own SWR cache, shared across requests for the life
+  of the server.
 
 ## Install
 
@@ -58,6 +59,7 @@ export default defineNuxtConfig({
       controlOrigin: '',
       apiId: '',
       apiKey: '',
+      siteHost: '',
     },
   },
 });
@@ -68,6 +70,7 @@ export default defineNuxtConfig({
 NUXT_ADSENTINEL_API_ID=your-plugin-api-id
 NUXT_ADSENTINEL_API_KEY=your-plugin-api-key
 NUXT_ADSENTINEL_CONTROL_ORIGIN=https://page-kit.io
+NUXT_ADSENTINEL_SITE_HOST=www.example.com
 ```
 
 Values in `runtimeConfig.adsentinel` (and their `NUXT_ADSENTINEL_*` env overrides)
@@ -80,8 +83,38 @@ take precedence over the inline module options.
 | `apiId`         | `string` | `''`                     | The site's plugin API id. Required to serve anything.  |
 | `apiKey`        | `string` | `''`                     | The site's plugin API key. Required to serve anything. |
 | `controlOrigin` | `string` | `'https://page-kit.io'`  | The control / serving origin.                          |
+| `siteHost`      | `string` | `''`                     | The site's public host. When set, always used.         |
 
 When `apiId` or `apiKey` is empty the module stays completely inert.
+
+## Behind a reverse proxy: `siteHost`
+
+The tags are asked for the site's **public** host. Without `siteHost`, the
+module uses the request's `X-Forwarded-Host` (first value), then its `Host`
+header, lowercased and without the port. Behind a reverse proxy, CDN or API
+gateway, the `Host` your Nuxt server receives is often the proxy's upstream
+host (say `app-upstream.internal:3000`), which the control API does not know:
+it answers `unknown host`, nothing is injected, and the module logs one warning
+naming the host it sent.
+
+If your proxy forwards `X-Forwarded-Host`, nothing else is needed. Otherwise
+pin the public host:
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@adsentinel/nuxt'],
+  adsentinel: {
+    apiId: 'your-plugin-api-id',
+    apiKey: 'your-plugin-api-key',
+    siteHost: 'www.example.com',
+  },
+});
+```
+
+or set it at deploy time, without rebuilding, with
+`NUXT_ADSENTINEL_SITE_HOST=www.example.com` or `ADSENTINEL_SITE_HOST=www.example.com`. A configured `siteHost`
+(option or `NUXT_ADSENTINEL_SITE_HOST`) wins over `ADSENTINEL_SITE_HOST`.
 
 ## How it works
 
@@ -89,8 +122,9 @@ When `apiId` or `apiKey` is empty the module stays completely inert.
    `runtimeConfig.adsentinel` / `NUXT_ADSENTINEL_*`) and publishes them to the
    server runtime config, then registers a Nitro server plugin.
 2. The plugin builds a per-host SWR cache factory from `@adsentinel/plugin-core`'s
-   `createBundleCache`, and hooks `render:html`.
-3. On each render it derives the host from the request, reads the bundle from that
+   `createHostBundleCaches`, and hooks `render:html`.
+3. On each render it takes the configured `siteHost`, or else derives the host
+   from the request (`X-Forwarded-Host`, then `Host`), reads the bundle from that
    host's cache (fetched from the control API at most once per TTL), and, when the
    bundle is active with non-empty tags, unshifts the tags onto `html.head`.
 

@@ -33,9 +33,41 @@ const adSentinelSettings: PluginSettings = {
   controlOrigin: 'https://page-kit.io', // default control/serving origin
   apiId: process.env.ADSENTINEL_API_ID!, // console -> Domain -> Serving
   apiKey: process.env.ADSENTINEL_API_KEY!,
-  siteHost: 'example.com', // the host the bundle is asked for
+  siteHost: 'www.example.com', // the site's PUBLIC host
 };
 ```
+
+### `siteHost` and reverse proxies
+
+The tags are asked for the site's **public** host (lowercased, port removed).
+If `siteHost` is omitted, the `ADSENTINEL_SITE_HOST` environment variable is
+used. To derive it from each request instead, use `siteHostFromHeaders`, which
+returns the explicit `siteHost` (or `ADSENTINEL_SITE_HOST`) when set, else the
+first `X-Forwarded-Host` value, else the `Host` header:
+
+```ts
+import { headers } from 'next/headers';
+import { siteHostFromHeaders, type PluginSettings } from '@adsentinel/react';
+
+export async function adSentinelSettingsForRequest(): Promise<PluginSettings> {
+  return {
+    controlOrigin: 'https://page-kit.io',
+    apiId: process.env.ADSENTINEL_API_ID!,
+    apiKey: process.env.ADSENTINEL_API_KEY!,
+    // Behind a reverse proxy that does not forward the public host, pass it:
+    // siteHostFromHeaders(await headers(), 'www.example.com')
+    siteHost: siteHostFromHeaders(await headers()),
+  };
+}
+```
+
+`siteHostFromHeaders` accepts a Fetch `Headers` (App Router, Remix, Vike) or a
+Node headers object (`req.headers` in a custom server). Behind a reverse proxy,
+CDN or API gateway, the `Host` the server receives is often the proxy's
+upstream host (say `app-upstream.internal:3000`); the control API answers
+`unknown host`, nothing is injected, and one warning names the host that was
+sent. Forward `X-Forwarded-Host`, or set `siteHost` / `ADSENTINEL_SITE_HOST` to
+the public host.
 
 ## Public surface
 
@@ -44,6 +76,7 @@ const adSentinelSettings: PluginSettings = {
 | `getAdSentinelTags(settings)` | `Promise<string>` | Pages Router `_document`, Remix, Vike — anywhere you control the document markup. `''` when there is nothing to inject. |
 | `tagsFromBundle(bundle)` | `string` | The same, from a bundle you already hold (e.g. a cached one). |
 | `<AdSentinelTags settings={…} />` | async Server Component | Next.js App Router, which has no document-string hook. |
+| `siteHostFromHeaders(headers, siteHost?)` | `string \| undefined` | The request's public site host (explicit, else `X-Forwarded-Host`, else `Host`). |
 | `PluginSettings`, `EdgeBundle` | types | Typing your config (re-exported from `@adsentinel/plugin-core`). |
 
 ### Caching

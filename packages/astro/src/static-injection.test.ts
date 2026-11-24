@@ -117,3 +117,46 @@ describe('injectTagsIntoStaticBuild', () => {
     expect(logger.warns.length).toBe(1);
   });
 });
+
+describe('injectTagsIntoStaticBuild site host', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('sends the explicit siteHost, normalised', async () => {
+    const fetchImpl = fetchReturning(bundle());
+    await injectTagsIntoStaticBuild({
+      dir: pathToFileURL(dir + '/'),
+      settings: { ...settingsWith(fetchImpl), siteHost: 'WWW.Example.com:443' },
+      logger: recordingLogger(),
+      listHtmlFiles: async () => [],
+    });
+    const [url] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string];
+    expect(new URL(url).searchParams.get('host')).toBe('www.example.com');
+  });
+
+  it('falls back to ADSENTINEL_SITE_HOST', async () => {
+    vi.stubEnv('ADSENTINEL_SITE_HOST', 'www.example.com');
+    const fetchImpl = fetchReturning(bundle());
+    await injectTagsIntoStaticBuild({
+      dir: pathToFileURL(dir + '/'),
+      settings: { ...settingsWith(fetchImpl), siteHost: undefined },
+      logger: recordingLogger(),
+      listHtmlFiles: async () => [],
+    });
+    const [url] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string];
+    expect(new URL(url).searchParams.get('host')).toBe('www.example.com');
+  });
+
+  it('injects nothing and warns when no host is configured', async () => {
+    const fetchImpl = fetchReturning(bundle());
+    const logger = recordingLogger();
+    await injectTagsIntoStaticBuild({
+      dir: pathToFileURL(dir + '/'),
+      settings: { ...settingsWith(fetchImpl), siteHost: undefined },
+      logger,
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(logger.warns.join(' ')).toContain('siteHost');
+  });
+});

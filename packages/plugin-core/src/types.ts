@@ -16,7 +16,10 @@ export interface PluginSettings {
   /** The site's plugin credentials (console -> Domain -> Serving). */
   apiId: string;
   apiKey: string;
-  /** The host the bundle is asked for. The control API requires it; adapters pass the page's host. */
+  /**
+   * The site's public host the bundle is asked for, e.g. `www.example.com`. The
+   * control API requires it. Normalised before it is sent (lowercase, no port).
+   */
   siteHost?: string;
   /** The fetch to use; defaults to the global `fetch`. Injectable so tests need no network. */
   fetchImpl?: typeof fetch;
