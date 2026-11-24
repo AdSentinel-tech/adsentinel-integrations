@@ -48,9 +48,38 @@ framework built on it.
 | `apiId`         | yes      | —                       | The site's plugin API id (console → Domain → Serving).|
 | `apiKey`        | yes      | —                       | The site's plugin API key.                            |
 | `controlOrigin` | no       | `https://page-kit.io`   | The control / serving origin.                         |
+| `siteHost`      | no       | —                       | The site's public host. When set, always used.        |
 
-The site host is read from the request `Host` header, so the same middleware can
-front virtual hosts; each host is cached independently.
+Without `siteHost`, the site host is read from the request: the first
+`X-Forwarded-Host` value, else the `Host` header (lowercased, port removed). The
+same middleware can therefore front virtual hosts; each host is cached
+independently.
+
+## Behind a reverse proxy: `siteHost`
+
+The tags are asked for the site's **public** host. Behind a reverse proxy, CDN
+or API gateway, the `Host` your app receives is often the proxy's upstream host
+(say `app-upstream.internal:3000`), which the control API does not know: it
+answers `unknown host`, nothing is injected, and the middleware logs one
+warning naming the host it sent.
+
+If the proxy forwards `X-Forwarded-Host`, nothing else is needed. Otherwise pin
+the public host, in code or with the `ADSENTINEL_SITE_HOST` environment
+variable (the option wins when both are set):
+
+```ts
+app.use(
+  adsentinel({
+    apiId: process.env.ADSENTINEL_API_ID!,
+    apiKey: process.env.ADSENTINEL_API_KEY!,
+    siteHost: 'www.example.com',
+  }),
+);
+```
+
+```bash
+ADSENTINEL_SITE_HOST=www.example.com node server.js
+```
 
 ## Behaviour
 

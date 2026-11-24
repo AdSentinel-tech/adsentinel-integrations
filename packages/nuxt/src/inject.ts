@@ -10,11 +10,13 @@
  * Fail-open everywhere: a null, inactive or empty bundle injects nothing, and any
  * error while reaching the cache is swallowed so SSR is never broken.
  */
-import { createBundleCache } from '@adsentinel/plugin-core';
-import type { BundleCache, PluginSettings } from '@adsentinel/plugin-core';
+import { createHostBundleCaches, resolveSiteHost } from '@adsentinel/plugin-core';
+import type { BundleCache, SiteCredentials } from '@adsentinel/plugin-core';
 
-/** The control credentials for a site, without the per-request host. */
-export type SiteCredentials = Omit<PluginSettings, 'siteHost'>;
+// The per-host cache factory lives in `@adsentinel/plugin-core`; re-exported so
+// the Nitro plugin and the tests use one definition.
+export { createHostBundleCaches };
+export type { SiteCredentials };
 
 /**
  * The slice of Nitro's `render:html` context this module touches: `head` is the
@@ -26,25 +28,12 @@ export interface RenderHead {
 }
 
 /**
- * A resolver of SWR caches keyed by site host.
- *
- * A Nuxt server can answer for more than one host, and the control API wants the
- * host as a query parameter, so each host needs its own cache. The caches are
- * created lazily and kept for the lifetime of the server, so after the first
- * request per host the control API is hit at most once per TTL and never on the
- * request's critical path.
+ * The host to ask the bundle for: the configured `siteHost` (module option,
+ * `NUXT_ADSENTINEL_SITE_HOST`, or `ADSENTINEL_SITE_HOST`) when set, else the
+ * request host as h3 reports it with `X-Forwarded-Host` honoured. Normalised.
  */
-export function createHostBundleCaches(credentials: SiteCredentials): (host: string | undefined) => BundleCache {
-  const byHost = new Map<string, BundleCache>();
-  return (host) => {
-    const key = host ?? '';
-    let cache = byHost.get(key);
-    if (!cache) {
-      cache = createBundleCache({ ...credentials, siteHost: host });
-      byHost.set(key, cache);
-    }
-    return cache;
-  };
+export function siteHostForRequest(configuredSiteHost: string | undefined, requestHost: string | undefined): string | undefined {
+  return resolveSiteHost({ siteHost: configuredSiteHost, host: requestHost });
 }
 
 /**

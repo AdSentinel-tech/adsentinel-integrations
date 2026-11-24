@@ -14,7 +14,7 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { fetchEdgeBundle, injectTagsIntoHtml } from '@adsentinel/plugin-core';
+import { fetchEdgeBundle, injectTagsIntoHtml, normaliseSiteHost, siteHostFromEnv } from '@adsentinel/plugin-core';
 import type { PluginSettings } from '@adsentinel/plugin-core';
 
 /** The slice of Astro's integration logger this path uses. */
@@ -58,8 +58,15 @@ export async function defaultListHtmlFiles(dir: URL): Promise<string[]> {
  * build.
  */
 export async function injectTagsIntoStaticBuild(params: StaticInjectionParams): Promise<void> {
-  const { dir, settings, logger } = params;
+  const { dir, logger } = params;
   try {
+    // A static build has no request: the public host must be configured.
+    const siteHost = normaliseSiteHost(params.settings.siteHost) ?? siteHostFromEnv();
+    if (!siteHost) {
+      logger.warn('[adsentinel] no siteHost (option or ADSENTINEL_SITE_HOST) for the static build; injected nothing.');
+      return;
+    }
+    const settings = { ...params.settings, siteHost };
     const bundle = await fetchEdgeBundle(settings);
     if (!bundle || !bundle.active || !bundle.tags) {
       logger.warn('[adsentinel] no active serving bundle; injected nothing into the static build.');

@@ -12,7 +12,9 @@
  *   - One SWR bundle cache per middleware instance, so the control API is hit at
  *     most once per TTL (per `Host`), never on the request's critical path after
  *     warm-up.
- *   - `siteHost` comes from the request `Host` header.
+ *   - `siteHost` is the configured public host (the `siteHost` option, else the
+ *     `ADSENTINEL_SITE_HOST` environment variable) when set; otherwise the first
+ *     `X-Forwarded-Host` value, else the `Host` header, normalised.
  *   - Only `text/html` responses are rewritten: the tags are prepended to
  *     `<head>` via `injectTagsIntoHtml`. Every other response (JSON, assets,
  *     redirects, streams such as SSE) is passed through untouched and un-buffered.
@@ -21,8 +23,15 @@
  *     app, never hangs it, preserves status and headers, corrects `Content-Length`
  *     after injection, and never injects twice.
  */
-import { createBundleCache, DEFAULT_CONTROL_ORIGIN, injectTagsIntoHtml } from '@adsentinel/plugin-core';
-import type { BundleCache, PluginSettings } from '@adsentinel/plugin-core';
+import {
+  createHostBundleCaches,
+  DEFAULT_CONTROL_ORIGIN,
+  injectTagsIntoHtml,
+  normaliseSiteHost,
+  siteHostFromEnv,
+  siteHostFromHeaders,
+} from '@adsentinel/plugin-core';
+import type { SiteCredentials } from '@adsentinel/plugin-core';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
 // The control / serving origin lives in `@adsentinel/plugin-core` (one
@@ -41,6 +50,14 @@ export interface AdsentinelOptions {
   /** The site's plugin credentials (console -> Domain -> Serving). */
   apiId: string;
   apiKey: string;
+  /**
+   * The site's public host, e.g. `www.example.com`. When set (here or with the
+   * `ADSENTINEL_SITE_HOST` environment variable) it is always the host the tags
+   * are asked for. Otherwise the request's `X-Forwarded-Host` (first value) is
+   * used, then its `Host`. Set it when the app sits behind a reverse proxy that
+   * does not forward the public host.
+   */
+  siteHost?: string;
 }
 
 /**
@@ -56,10 +73,9 @@ function isHtmlResponse(res: Response): boolean {
   return contentType.toLowerCase().includes('text/html');
 }
 
-/** The request `Host` header, or undefined when absent. */
-function hostOf(req: Request): string | undefined {
-  const host = req.headers?.host;
-  return typeof host === 'string' && host.length > 0 ? host : undefined;
+/** The public site host of a request: the configured one, else `X-Forwarded-Host`, else `Host`. */
+function siteHostOf(req: Request, configuredSiteHost: string | undefined): string | undefined {
+  return siteHostFromHeaders(req.headers, configuredSiteHost);
 }
 
 /** Normalize a write/end chunk to a Buffer, or null when it cannot be represented. */
@@ -105,26 +121,18 @@ function parseChunkArgs(args: unknown[]): ChunkArgs {
  *   app.use(adsentinel({ apiId: process.env.ADSENTINEL_API_ID!, apiKey: process.env.ADSENTINEL_API_KEY! }));
  */
 export default function adsentinel(options: AdsentinelOptions): RequestHandler {
-  const settings: Omit<PluginSettings, 'siteHost'> = {
+  const settings: SiteCredentials = {
     controlOrigin: options.controlOrigin || DEFAULT_CONTROL_ORIGIN,
     apiId: options.apiId,
     apiKey: options.apiKey,
   };
+  const configuredSiteHost = normaliseSiteHost(options.siteHost) ?? siteHostFromEnv();
 
   // One cache per middleware instance (SWR). A single mounted middleware may
   // front more than one host (virtual hosts), and a bundle is per-host, so the
-  // per-instance cache is keyed by `Host`; each key still fetches at most once
-  // per TTL.
-  const cacheByHost = new Map<string, BundleCache>();
-  function cacheFor(host: string | undefined): BundleCache {
-    const key = host ?? '';
-    let cache = cacheByHost.get(key);
-    if (!cache) {
-      cache = createBundleCache({ ...settings, siteHost: host });
-      cacheByHost.set(key, cache);
-    }
-    return cache;
-  }
+  // per-instance cache is keyed by the resolved site host; each key still
+  // fetches at most once per TTL.
+  const cacheFor = createHostBundleCaches(settings);
 
   return function adsentinelMiddleware(req: Request, res: Response, next: NextFunction): void {
     const tagged = res as Response & { [APPLIED]?: boolean };
@@ -140,7 +148,7 @@ export default function adsentinel(options: AdsentinelOptions): RequestHandler {
     try {
       // Kick the bundle fetch off now so it is warm by the time the body ends.
       // The cache is fail-open; this `.then` can only resolve to a tags string.
-      tagsPromise = cacheFor(hostOf(req))
+      tagsPromise = cacheFor(siteHostOf(req, configuredSiteHost))
         .get()
         .then(
           (bundle) => (bundle && bundle.active && bundle.tags ? bundle.tags : ''),

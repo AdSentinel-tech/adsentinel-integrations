@@ -58,7 +58,7 @@ interface MockExchange {
 }
 
 /** Minimal req/res pair that records what the middleware finally writes. */
-function mockExchange(host = 'example.com'): MockExchange {
+function mockExchange(requestHeaders: Record<string, string> = { host: 'example.com' }): MockExchange {
   const headers: Record<string, string | number> = {};
   let out = Buffer.alloc(0);
   let sent = false;
@@ -105,12 +105,13 @@ function mockExchange(host = 'example.com'): MockExchange {
     },
   } as unknown as Response;
 
-  const req = { headers: { host } } as unknown as Request;
+  const req = { headers: requestHeaders } as unknown as Request;
   return { req, res, finished, body: () => out, header: (name) => headers[name.toLowerCase()] };
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 const OPTIONS = { apiId: 'id', apiKey: 'key' };
@@ -259,5 +260,45 @@ describe('adsentinel()', () => {
     }
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('adsentinel() site host', () => {
+  /** Serve one HTML page for `requestHeaders` and return the host sent to the edge-bundle endpoint. */
+  async function hostSentFor(options: Parameters<typeof adsentinel>[0], requestHeaders: Record<string, string>): Promise<string | null> {
+    const fetchImpl = stubFetch(() => jsonResponse(bundle()));
+    const { req, res, finished, body } = mockExchange(requestHeaders);
+    adsentinel(options)(req, res, () => {
+      res.setHeader('content-type', 'text/html');
+      res.end(HTML);
+    });
+    await finished;
+    expect(body().toString('utf8')).toContain(TAGS);
+    const [url] = fetchImpl.mock.calls[0] as unknown as [string];
+    return new URL(url).searchParams.get('host');
+  }
+
+  it('uses the plain Host header, without its port', async () => {
+    expect(await hostSentFor(OPTIONS, { host: 'WWW.Example.com:3000' })).toBe('www.example.com');
+  });
+
+  it('honours X-Forwarded-Host (first value) behind a reverse proxy', async () => {
+    expect(
+      await hostSentFor(OPTIONS, { host: 'app-upstream.internal:3000', 'x-forwarded-host': 'www.example.com, edge.internal' }),
+    ).toBe('www.example.com');
+  });
+
+  it('always uses the explicit siteHost option when set', async () => {
+    expect(
+      await hostSentFor(
+        { ...OPTIONS, siteHost: 'www.example.com' },
+        { host: 'app-upstream.internal', 'x-forwarded-host': 'proxy.internal' },
+      ),
+    ).toBe('www.example.com');
+  });
+
+  it('uses ADSENTINEL_SITE_HOST when no siteHost option is set', async () => {
+    vi.stubEnv('ADSENTINEL_SITE_HOST', 'www.example.com');
+    expect(await hostSentFor(OPTIONS, { host: 'app-upstream.internal' })).toBe('www.example.com');
   });
 });

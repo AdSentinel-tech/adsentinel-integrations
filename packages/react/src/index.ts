@@ -13,6 +13,9 @@
  *     most once per TTL).
  *   - `<AdSentinelTags settings={…} />` — an async Server Component for the
  *     Next.js App Router, which has no document-string hook.
+ *   - `siteHostFromHeaders(headers, siteHost?)` — the request's public site
+ *     host: the explicit `siteHost` (or `ADSENTINEL_SITE_HOST`) when set, else
+ *     the first `X-Forwarded-Host`, else `Host`.
  *
  * Everything is server-side and fail-open: an inactive site, an empty bundle or
  * a control-plane failure renders nothing and never throws into the host app.
@@ -21,6 +24,9 @@
 export { getAdSentinelTags, tagsFromBundle } from './get-tags.js';
 export { AdSentinelTags } from './adsentinel-tags.js';
 export type { AdSentinelTagsProps } from './adsentinel-tags.js';
+
+// The request -> public site host resolution, for settings built per request.
+export { siteHostFromHeaders } from '@adsentinel/plugin-core';
 
 // Re-exported so an adapter user types their settings without a second import.
 export type { EdgeBundle, PluginSettings } from '@adsentinel/plugin-core';

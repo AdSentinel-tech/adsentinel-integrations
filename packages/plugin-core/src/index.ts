@@ -22,3 +22,8 @@ export { createBundleCache } from './bundle-cache.js';
 export type { BundleCacheOptions, BundleStore } from './bundle-cache.js';
 export { injectTagsIntoHtml } from './inject-tags.js';
 export { isOwnPath } from './own-path.js';
+export { normaliseSiteHost, resolveSiteHost, siteHostFromEnv, siteHostFromHeaders, SITE_HOST_ENV } from './site-host.js';
+export type { HeaderSource, SiteHostSources } from './site-host.js';
+export { createHostBundleCaches } from './host-bundle-caches.js';
+export type { SiteCredentials } from './host-bundle-caches.js';
+export { unknownHostMessage } from './unknown-host-warning.js';
